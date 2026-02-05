@@ -2,7 +2,9 @@
 
 import pandas as pd
 import numpy as np
+import pickle
 from typing import List, Dict, Any
+from pathlib import Path
 from sklearn.preprocessing import LabelEncoder
 from ..collectors.data_sources import VulnerabilityReport
 
@@ -224,8 +226,9 @@ class FeatureEngineer:
         return df
     
     def save(self, filepath):
-        """Save the feature engineer state"""
-        import pickle
+        """Save the feature engineer state to a pickle file"""
+        filepath = Path(filepath)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
         
         state = {
             'feature_stats': self.feature_stats,
@@ -239,14 +242,16 @@ class FeatureEngineer:
         print(f"Saved FeatureEngineer to {filepath}")
     
     def load(self, filepath):
-        """Load the feature engineer state"""
-        import pickle
+        """Load the feature engineer state from a pickle file"""
+        filepath = Path(filepath)
         
         with open(filepath, 'rb') as f:
             state = pickle.load(f)
         
-        self.feature_stats = state['feature_stats']
-        self.label_encoders = state['label_encoders']
-        self.feature_names = state['feature_names']
+        self.feature_stats = state.get('feature_stats', {})
+        self.label_encoders = state.get('label_encoders', {})
+        self.feature_names = state.get('feature_names', [])
         
         print(f"Loaded FeatureEngineer from {filepath}")
+        
+        return self
