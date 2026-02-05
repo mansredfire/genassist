@@ -1,0 +1,11 @@
+report_id,target_domain,target_company,vulnerability_type,severity,cvss_score,tech_stack,description,endpoint,http_method,bounty_amount
+001,example.com,Example Corp,SQL Injection,high,7.5,"React,Node.js,MySQL",SQL injection in login form,/api/login,POST,500
+002,test.io,Test Inc,XSS,medium,5.0,"Angular,Java",Stored XSS in comment section,/api/comments,POST,250
+003,demo.app,Demo LLC,IDOR,high,8.2,"Vue.js,PostgreSQL",Insecure direct object reference in user API,/api/users/{id},GET,750
+004,secure.net,Secure Net,SSRF,critical,9.1,"React,Python,MongoDB",Server-side request forgery in image upload,/api/upload,POST,1000
+005,webapp.com,WebApp Inc,CSRF,medium,6.5,"Django,PostgreSQL",CSRF in account settings,/settings/update,POST,300
+006,api.example.com,Example Corp,Authentication Bypass,critical,9.5,"Node.js,Redis",JWT signature not verified,/api/auth,POST,1500
+007,shop.io,Shop Inc,RCE,critical,10.0,"PHP,MySQL",Remote code execution via file upload,/upload.php,POST,2000
+008,xml.app,XML Corp,XXE,high,7.8,"Java,Oracle",XML external entity injection,/api/parse,POST,600
+009,files.net,Files Inc,Path Traversal,high,7.2,"Python,SQLite",Directory traversal in download,/download,GET,400
+010,info.com,Info Corp,Information Disclosure,low,3.5,"React,Express",Sensitive data in error messages,/api/data,GET,100
