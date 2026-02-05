@@ -16,7 +16,6 @@ from rich.panel import Panel
 import pickle
 
 from test_with_mock_data import generate_mock_reports
-from src.training.pipeline import TrainingPipeline
 
 console = Console()
 
@@ -29,7 +28,7 @@ def main():
     parser.add_argument('--reports', type=int, default=1000, 
                        help='Number of mock reports to generate (default: 1000)')
     parser.add_argument('--quick', action='store_true',
-                       help='Quick training mode (ignored, kept for compatibility)')
+                       help='Quick training mode')
     
     args = parser.parse_args()
     
@@ -65,34 +64,62 @@ def main():
     console.print("[yellow]Note: Training may take 5-15 minutes[/yellow]\n")
     
     try:
+        # Import here to catch any import errors
+        from src.training.pipeline import TrainingPipeline
+        
         # Create pipeline
         pipeline = TrainingPipeline()
         
-        # Load mock data
-        pipeline.raw_reports = reports
         console.print(f"[cyan]→ Loaded {len(reports)} mock reports[/cyan]\n")
         
-        # Preprocess
+        # Set the raw reports
+        pipeline.raw_reports = reports
+        
+        # Preprocess - check if method takes arguments or uses self.raw_reports
         console.print("[cyan]→ Preprocessing data...[/cyan]")
-        pipeline.processed_reports = pipeline.preprocess_data()
+        try:
+            # Try calling with reports as argument
+            pipeline.processed_reports = pipeline.preprocess_data(reports)
+        except TypeError:
+            # If that fails, it probably uses self.raw_reports
+            pipeline.processed_reports = pipeline.preprocess_data()
+        
         console.print(f"[green]✓ Preprocessed {len(pipeline.processed_reports)} reports[/green]\n")
         
         # Feature engineering
         console.print("[cyan]→ Engineering features...[/cyan]")
-        pipeline.feature_data = pipeline.engineer_features()
+        try:
+            pipeline.feature_data = pipeline.engineer_features(pipeline.processed_reports)
+        except TypeError:
+            pipeline.feature_data = pipeline.engineer_features()
+        
         console.print(f"[green]✓ Features engineered[/green]\n")
         
-        # Train models
+        # Train vulnerability model
         console.print("[cyan]→ Training vulnerability classifier...[/cyan]")
-        pipeline.train_vulnerability_model()
+        try:
+            pipeline.train_vulnerability_model(pipeline.feature_data)
+        except TypeError:
+            pipeline.train_vulnerability_model()
+        
         console.print("[green]✓ Vulnerability classifier trained[/green]\n")
         
+        # Train severity model
         console.print("[cyan]→ Training severity predictor...[/cyan]")
-        pipeline.train_severity_model()
+        try:
+            pipeline.train_severity_model(pipeline.feature_data)
+        except TypeError:
+            pipeline.train_severity_model()
+        
         console.print("[green]✓ Severity predictor trained[/green]\n")
         
+        # Train chain detector
         console.print("[cyan]→ Training chain detector...[/cyan]")
-        pipeline.train_chain_detector()
+        try:
+            pipeline.train_chain_detector(pipeline.processed_reports)
+        except TypeError:
+            pipeline.train_chain_detector()
+        
         console.print("[green]✓ Chain detector trained[/green]\n")
         
         # Save models
@@ -113,7 +140,26 @@ def main():
         ))
         
         console.print("\n[bold cyan]Next steps:[/bold cyan]")
-        console.print("  python scripts\\analyze_target.py --domain example.com\n")
+        console.print("  • Test predictions:")
+        console.print("    python scripts\\analyze_target.py --domain example.com --tech React Node.js\n")
+        console.print("  • Batch analysis:")
+        console.print("    python scripts\\batch_analyze.py --input targets.csv\n")
+        
+    except ImportError as e:
+        console.print(f"\n[bold red]❌ Import Error:[/bold red]")
+        console.print(f"[red]{e}[/red]")
+        console.print("\n[yellow]Missing module. Installing required packages...[/yellow]\n")
+        console.print("Run: pip install -r requirements.txt\n")
+        return 1
+        
+    except AttributeError as e:
+        console.print(f"\n[bold red]❌ Attribute Error:[/bold red]")
+        console.print(f"[red]{e}[/red]")
+        console.print("\n[yellow]The TrainingPipeline class may be incomplete.[/yellow]")
+        console.print("Check: src\\training\\pipeline.py\n")
+        import traceback
+        traceback.print_exc()
+        return 1
         
     except Exception as e:
         console.print(f"\n[bold red]❌ Error:[/bold red]")
