@@ -309,3 +309,159 @@ class HackerOneCollector(DataCollector):
                 tags=[],
                 owasp_category=self._map_to_owasp(vuln_type),
                 cwe_id=self._extract_cwe(weakness_name),
+                raw_data=data
+            )
+            
+        except Exception as e:
+            print(f"Error normalizing Hacktivity report: {e}")
+            return None
+    
+    def _extract_cvss_from_severity(self, severity: str) -> float:
+        """Convert severity rating to approximate CVSS score"""
+        severity_map = {
+            'critical': 9.0,
+            'high': 7.5,
+            'medium': 5.0,
+            'low': 3.0,
+            'none': 0.0
+        }
+        return severity_map.get(severity.lower(), 0.0)
+    
+    def _extract_domain_from_scope(self, attributes: Dict[str, Any]) -> str:
+        """Extract domain from structured scope"""
+        # Try to get from attributes or relationships
+        return ''
+    
+    def _extract_endpoint(self, text: str) -> str:
+        """Extract API endpoint from text"""
+        endpoint_pattern = r'(/api/[^\s]+|/v\d+/[^\s]+)'
+        match = re.search(endpoint_pattern, text, re.IGNORECASE)
+        return match.group(1) if match else ''
+    
+    def _extract_method(self, text: str) -> str:
+        """Extract HTTP method from text"""
+        methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
+        for method in methods:
+            if method in text.upper():
+                return method
+        return ''
+    
+    def _determine_location(self, text: str) -> str:
+        """Determine vulnerability location"""
+        text_lower = text.lower()
+        
+        if any(word in text_lower for word in ['api', 'endpoint', 'rest']):
+            return 'API'
+        elif any(word in text_lower for word in ['graphql', 'query', 'mutation']):
+            return 'GraphQL'
+        elif any(word in text_lower for word in ['parameter', 'param', 'query string']):
+            return 'URL Parameter'
+        elif any(word in text_lower for word in ['header', 'cookie']):
+            return 'HTTP Header'
+        elif any(word in text_lower for word in ['form', 'input', 'field']):
+            return 'Form Input'
+        else:
+            return 'Web Application'
+    
+    def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
+        """Parse ISO date string"""
+        if not date_str:
+            return None
+        try:
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        except:
+            return None
+    
+    def _requires_auth(self, text: str) -> bool:
+        """Check if vulnerability requires authentication"""
+        auth_keywords = ['authenticated', 'logged in', 'after login', 'auth required']
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in auth_keywords)
+    
+    def _extract_privileges(self, text: str) -> str:
+        """Extract privilege level required"""
+        text_lower = text.lower()
+        
+        if any(word in text_lower for word in ['admin', 'administrator']):
+            return 'admin'
+        elif any(word in text_lower for word in ['user', 'authenticated']):
+            return 'user'
+        else:
+            return 'none'
+    
+    def _requires_interaction(self, text: str) -> bool:
+        """Check if user interaction is required"""
+        interaction_keywords = ['click', 'visit', 'open', 'user interaction', 'victim']
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in interaction_keywords)
+    
+    def _estimate_complexity(self, text: str) -> str:
+        """Estimate exploitation complexity"""
+        text_lower = text.lower()
+        
+        if any(word in text_lower for word in ['race condition', 'timing', 'complex']):
+            return 'high'
+        elif any(word in text_lower for word in ['simple', 'basic', 'trivial']):
+            return 'low'
+        else:
+            return 'medium'
+    
+    def _map_to_owasp(self, vuln_type: str) -> str:
+        """Map vulnerability type to OWASP Top 10 category"""
+        owasp_map = {
+            'SQL Injection': 'A03:2021 – Injection',
+            'XSS': 'A03:2021 – Injection',
+            'CSRF': 'A01:2021 – Broken Access Control',
+            'IDOR': 'A01:2021 – Broken Access Control',
+            'Authentication Bypass': 'A07:2021 – Identification and Authentication Failures',
+            'SSRF': 'A10:2021 – Server-Side Request Forgery',
+            'XXE': 'A05:2021 – Security Misconfiguration',
+            'File Upload': 'A04:2021 – Insecure Design',
+            'RCE': 'A03:2021 – Injection',
+            'LFI': 'A01:2021 – Broken Access Control',
+            'Open Redirect': 'A01:2021 – Broken Access Control'
+        }
+        return owasp_map.get(vuln_type, 'Other')
+    
+    def _extract_cwe(self, weakness_name: str) -> str:
+        """Extract CWE ID from weakness name"""
+        if not weakness_name:
+            return ''
+        
+        # Try to extract CWE-XXX pattern
+        cwe_match = re.search(r'CWE-(\d+)', weakness_name, re.IGNORECASE)
+        if cwe_match:
+            return f"CWE-{cwe_match.group(1)}"
+        
+        # Map common weaknesses to CWE IDs
+        cwe_map = {
+            'SQL Injection': 'CWE-89',
+            'Cross-site Scripting': 'CWE-79',
+            'CSRF': 'CWE-352',
+            'Path Traversal': 'CWE-22',
+            'Command Injection': 'CWE-77',
+            'XXE': 'CWE-611',
+            'SSRF': 'CWE-918',
+            'Insecure Direct Object Reference': 'CWE-639'
+        }
+        
+        for weakness, cwe in cwe_map.items():
+            if weakness.lower() in weakness_name.lower():
+                return cwe
+        
+        return ''
+
+
+# For backward compatibility with existing code
+class HackerOneScraper(HackerOneCollector):
+    """Alias for HackerOneCollector to maintain compatibility"""
+    
+    def fetch_reports(self, limit: int = 100) -> List[VulnerabilityReport]:
+        """Fetch reports (alias for collect method)"""
+        return self.collect(limit=limit, use_cache=True)
+    
+    def fetch_reports_stream(self, limit: int = 100):
+        """Stream reports one by one for visual display"""
+        reports = self.collect(limit=limit, use_cache=False)
+        for report in reports:
+            yield report
