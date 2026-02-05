@@ -13,7 +13,7 @@ from src.training.pipeline import TrainingPipeline
 def main():
     parser = argparse.ArgumentParser(description='Train BugPredict AI from database')
     parser.add_argument('--db', required=True, help='Database connection string')
-    parser.add_argument('--table', required=True, help='Table name')
+    parser.add_argument('--table', help='Table name')
     parser.add_argument('--output-dir', '-o', default='data/models', help='Output directory for models')
     parser.add_argument('--limit', type=int, help='Limit number of records')
     parser.add_argument('--where', help='WHERE clause filter')
@@ -46,6 +46,7 @@ def main():
         tables = importer.list_tables()
         for table in tables:
             print(f"  - {table}")
+        importer.disconnect()
         return
     
     # Show schema if requested
@@ -55,11 +56,19 @@ def main():
         for col in schema:
             nullable = "NULL" if col['nullable'] else "NOT NULL"
             print(f"  {col['name']:30} {col['type']:20} {nullable}")
+        importer.disconnect()
         return
     
     if args.validate_only:
         print("\n✓ Validation complete (--validate-only mode)")
+        importer.disconnect()
         return
+    
+    # Require table name for import
+    if not args.table:
+        print("\n❌ Error: --table is required for import")
+        print("Use --list-tables to see available tables")
+        sys.exit(1)
     
     # Import reports
     print(f"\nImporting from table: {args.table}")
@@ -76,6 +85,7 @@ def main():
     
     if len(reports) == 0:
         print("\n❌ No valid reports found in database")
+        importer.disconnect()
         sys.exit(1)
     
     print(f"✓ Imported {len(reports)} reports")
