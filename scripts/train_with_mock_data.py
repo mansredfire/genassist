@@ -72,27 +72,14 @@ def main():
         
         console.print(f"[cyan]→ Loaded {len(reports)} mock reports[/cyan]\n")
         
-        # Set the raw reports
-        pipeline.raw_reports = reports
-        
-        # Preprocess - check if method takes arguments or uses self.raw_reports
+        # Preprocess
         console.print("[cyan]→ Preprocessing data...[/cyan]")
-        try:
-            # Try calling with reports as argument
-            pipeline.processed_reports = pipeline.preprocess_data(reports)
-        except TypeError:
-            # If that fails, it probably uses self.raw_reports
-            pipeline.processed_reports = pipeline.preprocess_data()
-        
+        pipeline.processed_reports = pipeline.preprocess_data(reports)
         console.print(f"[green]✓ Preprocessed {len(pipeline.processed_reports)} reports[/green]\n")
         
-        # Feature engineering
+        # Feature engineering - pass the reports as argument
         console.print("[cyan]→ Engineering features...[/cyan]")
-        try:
-            pipeline.feature_data = pipeline.engineer_features(pipeline.processed_reports)
-        except TypeError:
-            pipeline.feature_data = pipeline.engineer_features()
-        
+        pipeline.feature_data = pipeline.engineer_features(pipeline.processed_reports)
         console.print(f"[green]✓ Features engineered[/green]\n")
         
         # Train vulnerability model
@@ -101,7 +88,6 @@ def main():
             pipeline.train_vulnerability_model(pipeline.feature_data)
         except TypeError:
             pipeline.train_vulnerability_model()
-        
         console.print("[green]✓ Vulnerability classifier trained[/green]\n")
         
         # Train severity model
@@ -110,7 +96,6 @@ def main():
             pipeline.train_severity_model(pipeline.feature_data)
         except TypeError:
             pipeline.train_severity_model()
-        
         console.print("[green]✓ Severity predictor trained[/green]\n")
         
         # Train chain detector
@@ -119,7 +104,6 @@ def main():
             pipeline.train_chain_detector(pipeline.processed_reports)
         except TypeError:
             pipeline.train_chain_detector()
-        
         console.print("[green]✓ Chain detector trained[/green]\n")
         
         # Save models
@@ -140,10 +124,7 @@ def main():
         ))
         
         console.print("\n[bold cyan]Next steps:[/bold cyan]")
-        console.print("  • Test predictions:")
-        console.print("    python scripts\\analyze_target.py --domain example.com --tech React Node.js\n")
-        console.print("  • Batch analysis:")
-        console.print("    python scripts\\batch_analyze.py --input targets.csv\n")
+        console.print("  python scripts\\analyze_target.py --domain example.com\n")
         
     except ImportError as e:
         console.print(f"\n[bold red]❌ Import Error:[/bold red]")
