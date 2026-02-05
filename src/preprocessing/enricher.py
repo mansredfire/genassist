@@ -18,19 +18,37 @@ class DataEnricher:
             List of enriched reports
         """
         
-        for report in reports:
-            report = self.enrich_report(report)
+        enriched = []
         
-        return reports
+        for report in reports:
+            try:
+                enriched_report = self.enrich_report(report)
+                enriched.append(enriched_report)
+            except Exception as e:
+                print(f"Warning: Could not enrich report {getattr(report, 'report_id', 'unknown')}: {e}")
+                # Still add the report even if enrichment fails
+                enriched.append(report)
+        
+        return enriched
+    
+    def enrich(self, reports: List[VulnerabilityReport]) -> List[VulnerabilityReport]:
+        """Alias for enrich_reports - for compatibility with TrainingPipeline"""
+        return self.enrich_reports(reports)
     
     def enrich_report(self, report: VulnerabilityReport) -> VulnerabilityReport:
         """Enrich a single report"""
         
         # Add risk score based on severity and bounty
-        report.risk_score = self.calculate_risk_score(report)
+        if not hasattr(report, 'risk_score') or report.risk_score is None:
+            report.risk_score = self.calculate_risk_score(report)
         
         # Add exploitability score
-        report.exploitability_score = self.calculate_exploitability(report)
+        if not hasattr(report, 'exploitability_score') or report.exploitability_score is None:
+            report.exploitability_score = self.calculate_exploitability(report)
+        
+        # Add impact score
+        if not hasattr(report, 'impact_score') or report.impact_score is None:
+            report.impact_score = self.calculate_impact(report)
         
         return report
     
@@ -45,12 +63,17 @@ class DataEnricher:
             'none': 0.0
         }
         
-        base_score = severity_scores.get(report.severity, 0.0)
+        severity = getattr(report, 'severity', 'none')
+        base_score = severity_scores.get(severity.lower() if severity else 'none', 0.0)
         
         # Adjust based on bounty (indicator of real-world value)
-        if report.bounty_amount:
-            bounty_factor = min(report.bounty_amount / 10000, 2.0)
-            base_score *= (1 + bounty_factor * 0.2)
+        bounty = getattr(report, 'bounty_amount', 0)
+        if bounty:
+            try:
+                bounty_factor = min(float(bounty) / 10000, 2.0)
+                base_score *= (1 + bounty_factor * 0.2)
+            except (ValueError, TypeError):
+                pass
         
         return min(base_score, 10.0)
     
@@ -60,19 +83,45 @@ class DataEnricher:
         score = 5.0  # Base score
         
         # Authentication required reduces exploitability
-        if not report.authentication_required:
+        auth_required = getattr(report, 'authentication_required', False)
+        if not auth_required:
             score += 2.0
         
         # User interaction reduces exploitability
-        if not report.user_interaction:
+        user_interaction = getattr(report, 'user_interaction', False)
+        if not user_interaction:
             score += 1.0
         
         # Complexity affects exploitability
+        complexity = getattr(report, 'complexity', 'medium')
         complexity_factors = {
             'low': 2.0,
             'medium': 0.0,
             'high': -2.0
         }
-        score += complexity_factors.get(report.complexity, 0.0)
+        score += complexity_factors.get(complexity if complexity else 'medium', 0.0)
         
         return max(0.0, min(score, 10.0))
+    
+    def calculate_impact(self, report: VulnerabilityReport) -> float:
+        """Calculate impact score based on severity and CVSS"""
+        
+        cvss = getattr(report, 'cvss_score', 0.0)
+        
+        if cvss:
+            try:
+                return float(cvss)
+            except (ValueError, TypeError):
+                pass
+        
+        # Fallback to severity-based calculation
+        severity = getattr(report, 'severity', 'none')
+        severity_scores = {
+            'critical': 9.0,
+            'high': 7.0,
+            'medium': 5.0,
+            'low': 3.0,
+            'none': 0.0
+        }
+        
+        return severity_scores.get(severity.lower() if severity else 'none', 0.0)
