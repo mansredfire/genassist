@@ -409,17 +409,17 @@ class HackerOneCollector(DataCollector):
     def _map_to_owasp(self, vuln_type: str) -> str:
         """Map vulnerability type to OWASP Top 10 category"""
         owasp_map = {
-            'SQL Injection': 'A03:2021 – Injection',
-            'XSS': 'A03:2021 – Injection',
-            'CSRF': 'A01:2021 – Broken Access Control',
-            'IDOR': 'A01:2021 – Broken Access Control',
-            'Authentication Bypass': 'A07:2021 – Identification and Authentication Failures',
-            'SSRF': 'A10:2021 – Server-Side Request Forgery',
-            'XXE': 'A05:2021 – Security Misconfiguration',
-            'File Upload': 'A04:2021 – Insecure Design',
-            'RCE': 'A03:2021 – Injection',
-            'LFI': 'A01:2021 – Broken Access Control',
-            'Open Redirect': 'A01:2021 – Broken Access Control'
+            'SQL Injection': 'A03:2021 - Injection',
+            'XSS': 'A03:2021 - Injection',
+            'CSRF': 'A01:2021 - Broken Access Control',
+            'IDOR': 'A01:2021 - Broken Access Control',
+            'Authentication Bypass': 'A07:2021 - Identification and Authentication Failures',
+            'SSRF': 'A10:2021 - Server-Side Request Forgery',
+            'XXE': 'A05:2021 - Security Misconfiguration',
+            'File Upload': 'A04:2021 - Insecure Design',
+            'RCE': 'A03:2021 - Injection',
+            'LFI': 'A01:2021 - Broken Access Control',
+            'Open Redirect': 'A01:2021 - Broken Access Control'
         }
         return owasp_map.get(vuln_type, 'Other')
     
