@@ -1,0 +1,296 @@
+<!-- src/web/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BugPredict AI - Vulnerability Prediction Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">
+                <span class="text-blue-400">⚡</span> BugPredict AI
+            </h1>
+            <p class="text-gray-400">ML-Powered Vulnerability Prediction Platform</p>
+        </header>
+
+        <!-- Input Form -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8 shadow-xl">
+            <h2 class="text-2xl font-bold mb-4">Analyze Target</h2>
+            
+            <form id="analyzeForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Target Domain</label>
+                    <input type="text" id="domain" 
+                           class="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 focus:outline-none"
+                           placeholder="example.com" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Technology Stack (comma-separated)</label>
+                    <input type="text" id="techStack" 
+                           class="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 focus:outline-none"
+                           placeholder="React, Node.js, PostgreSQL">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded font-semibold transition">
+                    Analyze 🔍
+                </button>
+            </form>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="hidden">
+            <!-- Risk Score -->
+            <div class="bg-gray-800 rounded-lg p-6 mb-8 shadow-xl">
+                <h3 class="text-xl font-bold mb-4">Risk Assessment</h3>
+                <div class="flex items-center justify-center">
+                    <div class="text-center">
+                        <div id="riskScore" class="text-6xl font-bold mb-2"></div>
+                        <div class="text-gray-400">Overall Risk Score</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vulnerability Predictions -->
+            <div class="bg-gray-800 rounded-lg p-6 mb-8 shadow-xl">
+                <h3 class="text-xl font-bold mb-4">Vulnerability Predictions</h3>
+                <div id="vulnTable"></div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
+                    <h3 class="text-xl font-bold mb-4">Probability Distribution</h3>
+                    <canvas id="probChart"></canvas>
+                </div>
+                
+                <div class="bg-gray-800 rounded-lg p-6 shadow-xl">
+                    <h3 class="text-xl font-bold mb-4">Severity Breakdown</h3>
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Test Strategy -->
+            <div class="bg-gray-800 rounded-lg p-6 mb-8 shadow-xl">
+                <h3 class="text-xl font-bold mb-4">Recommended Test Strategy</h3>
+                <div id="testStrategy"></div>
+            </div>
+
+            <!-- Chains -->
+            <div id="chains" class="bg-gray-800 rounded-lg p-6 shadow-xl hidden">
+                <h3 class="text-xl font-bold mb-4">⛓️ Vulnerability Chains</h3>
+                <div id="chainsList"></div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            <p class="mt-4 text-gray-400">Analyzing target...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        
+        document.getElementById('analyzeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const domain = document.getElementById('domain').value;
+            const techStack = document.getElementById('techStack').value
+                .split(',')
+                .map(t => t.trim())
+                .filter(t => t);
+            
+            // Show loading
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            
+            try {
+                const response = await axios.post(`${API_BASE}/analyze`, {
+                    domain: domain,
+                    technology_stack: techStack
+                });
+                
+                displayResults(response.data);
+            } catch (error) {
+                alert('Error analyzing target: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        });
+        
+        function displayResults(data) {
+            document.getElementById('results').classList.remove('hidden');
+            
+            // Risk Score
+            const riskScore = data.risk_score;
+            const riskColor = riskScore > 7 ? 'text-red-500' : 
+                             riskScore > 4 ? 'text-yellow-500' : 'text-green-500';
+            document.getElementById('riskScore').innerHTML = 
+                `<span class="${riskColor}">${riskScore.toFixed(1)}/10</span>`;
+            
+            // Vulnerability Table
+            const vulnTable = data.vulnerability_predictions
+                .slice(0, 10)
+                .map((v, i) => `
+                    <div class="flex items-center justify-between py-3 border-b border-gray-700">
+                        <div class="flex items-center space-x-4">
+                            <span class="text-gray-500 font-mono">#${i + 1}</span>
+                            <span class="font-semibold">${v.vulnerability_type}</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="font-semibold">${(v.probability * 100).toFixed(1)}%</div>
+                                <div class="text-sm text-gray-400">${v.confidence}</div>
+                            </div>
+                            <div>${'⭐'.repeat(v.priority)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            document.getElementById('vulnTable').innerHTML = vulnTable;
+            
+            // Charts
+            createProbabilityChart(data.vulnerability_predictions);
+            createSeverityChart(data.severity_predictions);
+            
+            // Test Strategy
+            displayTestStrategy(data.test_strategy);
+            
+            // Chains
+            if (data.chain_predictions && data.chain_predictions.length > 0) {
+                document.getElementById('chains').classList.remove('hidden');
+                displayChains(data.chain_predictions);
+            }
+        }
+        
+        function createProbabilityChart(predictions) {
+            const ctx = document.getElementById('probChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: predictions.slice(0, 8).map(v => v.vulnerability_type),
+                    datasets: [{
+                        label: 'Probability',
+                        data: predictions.slice(0, 8).map(v => v.probability * 100),
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#9CA3AF' }
+                        },
+                        x: { ticks: { color: '#9CA3AF' } }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#9CA3AF' } }
+                    }
+                }
+            });
+        }
+        
+        function createSeverityChart(severities) {
+            const severityCounts = {};
+            Object.values(severities).forEach(s => {
+                const severity = s.severity || 'unknown';
+                severityCounts[severity] = (severityCounts[severity] || 0) + 1;
+            });
+            
+            const ctx = document.getElementById('severityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(severityCounts),
+                    datasets: [{
+                        data: Object.values(severityCounts),
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.5)',
+                            'rgba(251, 191, 36, 0.5)',
+                            'rgba(59, 130, 246, 0.5)',
+                            'rgba(34, 197, 94, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(251, 191, 36, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(34, 197, 94, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#9CA3AF' } }
+                    }
+                }
+            });
+        }
+        
+        function displayTestStrategy(strategy) {
+            const html = strategy.priority_targets
+                .map(target => `
+                    <div class="mb-6 p-4 bg-gray-700 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-semibold text-lg">${target.vulnerability}</h4>
+                            <span class="px-3 py-1 rounded text-sm ${
+                                target.severity === 'critical' ? 'bg-red-600' :
+                                target.severity === 'high' ? 'bg-orange-600' :
+                                target.severity === 'medium' ? 'bg-yellow-600' :
+                                'bg-blue-600'
+                            }">${target.severity}</span>
+                        </div>
+                        <div class="text-sm text-gray-400 mb-3">
+                            Probability: ${(target.probability * 100).toFixed(1)}% | 
+                            Priority Score: ${target.priority_score.toFixed(2)}
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-semibold text-sm">Recommended Tools:</span>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                ${target.tools.map(tool => 
+                                    `<span class="px-2 py-1 bg-blue-900 rounded text-xs">${tool}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            
+            document.getElementById('testStrategy').innerHTML = html;
+        }
+        
+        function displayChains(chains) {
+            const html = chains.map(chain => `
+                <div class="mb-4 p-4 bg-gray-700 rounded">
+                    <h4 class="font-semibold text-lg mb-2">${chain.name}</h4>
+                    <div class="text-sm text-gray-400 mb-2">
+                        Chain: ${chain.vulns.join(' → ')}
+                    </div>
+                    <div class="text-sm">
+                        <span class="font-semibold">Severity:</span> 
+                        <span class="px-2 py-1 rounded ${
+                            chain.severity === 'critical' ? 'bg-red-600' : 'bg-orange-600'
+                        }">${chain.severity}</span>
+                    </div>
+                    <div class="mt-2 text-sm text-gray-300">${chain.description}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('chainsList').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
