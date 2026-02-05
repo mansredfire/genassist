@@ -1,6 +1,6 @@
-"""Data preprocessing module"""
+"""Preprocessing modules for BugPredict AI"""
 
-from .normalizer import DataNormalizer
-from .deduplicator import Deduplicator
+# Add any preprocessing classes you have
+# For now, this can be empty or have basic imports
 
-__all__ = ['DataNormalizer', 'Deduplicator']
+__all__ = []
