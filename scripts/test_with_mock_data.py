@@ -341,3 +341,82 @@ def test_with_visual_collector(reports: list):
             time.sleep(0.2)  # Simulate delay
         
         console.print(f"[bold green]✅ Visual collector test complete![/bold green]")
+        console.print(f"   Processed {len(reports[:10])} mock reports\n")
+        
+    except ImportError as e:
+        console.print(f"[yellow]⚠️  Could not import visual collector: {e}[/yellow]")
+        console.print("   This is okay - the mock data is ready to use!\n")
+
+def main():
+    """Main entry point"""
+    
+    console.print()
+    console.print(Panel.fit(
+        "[bold white]🤖 BugPredict AI[/bold white]\n"
+        "[cyan]Mock Data Generator[/cyan]\n\n"
+        "Generates realistic vulnerability reports for testing",
+        border_style="blue"
+    ))
+    console.print()
+    
+    # Generate reports
+    reports = generate_mock_reports(count=50)
+    
+    # Display summary
+    display_report_summary(reports)
+    
+    # Test visual collector
+    test_with_visual_collector(reports)
+    
+    # Save to file
+    import json
+    from pathlib import Path
+    
+    output_dir = Path('data/raw')
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    output_file = output_dir / f"mock_reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    
+    # Convert reports to dict for JSON serialization
+    reports_dict = []
+    for report in reports:
+        report_dict = {
+            'report_id': report.report_id,
+            'platform': report.platform,
+            'target_domain': report.target_domain,
+            'target_company': report.target_company,
+            'target_program': report.target_program,
+            'vulnerability_type': report.vulnerability_type,
+            'severity': report.severity,
+            'cvss_score': report.cvss_score,
+            'technology_stack': report.technology_stack,
+            'endpoint': report.endpoint,
+            'http_method': report.http_method,
+            'vulnerability_location': report.vulnerability_location,
+            'description': report.description,
+            'bounty_amount': report.bounty_amount,
+            'researcher_reputation': report.researcher_reputation,
+            'authentication_required': report.authentication_required,
+            'privileges_required': report.privileges_required,
+            'user_interaction': report.user_interaction,
+            'complexity': report.complexity,
+            'owasp_category': report.owasp_category,
+            'cwe_id': report.cwe_id,
+            'reported_date': report.reported_date.isoformat() if report.reported_date else None,
+            'disclosed_date': report.disclosed_date.isoformat() if report.disclosed_date else None
+        }
+        reports_dict.append(report_dict)
+    
+    with open(output_file, 'w') as f:
+        json.dump(reports_dict, f, indent=2)
+    
+    console.print(f"[bold cyan]💾 Saved mock data to:[/bold cyan] {output_file}\n")
+    console.print("[bold green]✨ Mock data generation complete![/bold green]")
+    console.print("\nYou can now use this data for:")
+    console.print("  • Training ML models")
+    console.print("  • Testing the analysis pipeline")
+    console.print("  • Demonstrating the visual UI")
+    console.print("  • Development and debugging\n")
+
+if __name__ == "__main__":
+    main()
