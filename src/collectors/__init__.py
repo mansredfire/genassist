@@ -16,12 +16,3 @@ __all__ = [
     'JSONImporter',
     'DatabaseImporter'
 ]
-```
-
----
-
-### **4. Update `requirements.txt`**
-
-Add SQLAlchemy:
-```
-sqlalchemy>=2.0.0
