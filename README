@@ -19,3 +19,64 @@ Deployment
 
 
 🏗️ Architecture
+System Architecture
+┌─────────────────────────────────────────────────────────────────┐
+│                     BugPredict AI System                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+        ▼                     ▼                     ▼
+┌───────────────┐    ┌────────────────┐    ┌──────────────┐
+│ Data Pipeline │    │  ML Engine     │    │ API Server   │
+└───────────────┘    └────────────────┘    └──────────────┘
+        │                     │                     │
+        │                     │                     │
+   ┌────┴────┐           ┌───┴────┐           ┌────┴─────┐
+   │         │           │        │           │          │
+   ▼         ▼           ▼        ▼           ▼          ▼
+[Scrapers] [APIs]   [Training] [Inference] [CLI]  [Web UI]
+Component Breakdown
+python# Directory Structure
+bugpredict-ai/
+├── data/
+│   ├── raw/                    # Raw scraped data
+│   ├── processed/              # Cleaned and normalized data
+│   ├── features/               # Engineered features
+│   └── models/                 # Trained models
+├── src/
+│   ├── collectors/             # Data collection modules
+│   │   ├── hackerone_scraper.py
+│   │   ├── bugcrowd_scraper.py
+│   │   ├── cve_collector.py
+│   │   └── github_advisory_collector.py
+│   ├── preprocessing/          # Data cleaning
+│   │   ├── normalizer.py
+│   │   ├── deduplicator.py
+│   │   └── enricher.py
+│   ├── features/               # Feature engineering
+│   │   ├── tech_stack_encoder.py
+│   │   ├── temporal_features.py
+│   │   └── graph_features.py
+│   ├── models/                 # ML models
+│   │   ├── vulnerability_classifier.py
+│   │   ├── severity_predictor.py
+│   │   ├── chain_detector.py
+│   │   └── ensemble_model.py
+│   ├── inference/              # Prediction engine
+│   │   ├── predictor.py
+│   │   ├── test_generator.py
+│   │   └── report_builder.py
+│   ├── api/                    # REST API
+│   │   ├── app.py
+│   │   ├── routes.py
+│   │   └── schemas.py
+│   └── cli/                    # Command-line interface
+│       └── main.py
+├── notebooks/                  # Jupyter notebooks for research
+├── tests/                      # Unit and integration tests
+├── scripts/                    # Utility scripts
+├── docker/                     # Docker configurations
+└── docs/                       # Documentation
+
+📊 Data Collection Strategy
