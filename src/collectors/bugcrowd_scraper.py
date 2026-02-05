@@ -224,7 +224,7 @@ class BugcrowdCollector(DataCollector):
                 complexity=self._estimate_complexity(title),
                 tags=[],
                 owasp_category=self._map_to_owasp(vuln_type),
-                cwe_id=0,
+                cwe_id='',
                 raw_data={'title': title, 'researcher': researcher}
             )
             
@@ -337,7 +337,7 @@ class BugcrowdCollector(DataCollector):
                 complexity=self._estimate_complexity(title),
                 tags=[],
                 owasp_category=self._map_to_owasp(vuln_type),
-                cwe_id=0,
+                cwe_id='',
                 raw_data=data
             )
             
@@ -471,3 +471,18 @@ class BugcrowdCollector(DataCollector):
         else:
             # Handle scraped data
             return None
+
+
+# For backward compatibility with existing code
+class BugcrowdScraper(BugcrowdCollector):
+    """Alias for BugcrowdCollector to maintain compatibility"""
+    
+    def fetch_reports(self, limit: int = 100) -> List[VulnerabilityReport]:
+        """Fetch reports (alias for collect method)"""
+        return self.collect(limit=limit, use_cache=True)
+    
+    def fetch_reports_stream(self, limit: int = 100):
+        """Stream reports one by one for visual display"""
+        reports = self.collect(limit=limit, use_cache=False)
+        for report in reports:
+            yield report
