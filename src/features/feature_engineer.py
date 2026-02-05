@@ -222,3 +222,31 @@ class FeatureEngineer:
                 df = df.drop(columns=[col])
         
         return df
+    
+    def save(self, filepath):
+        """Save the feature engineer state"""
+        import pickle
+        
+        state = {
+            'feature_stats': self.feature_stats,
+            'label_encoders': self.label_encoders,
+            'feature_names': self.feature_names
+        }
+        
+        with open(filepath, 'wb') as f:
+            pickle.dump(state, f)
+        
+        print(f"Saved FeatureEngineer to {filepath}")
+    
+    def load(self, filepath):
+        """Load the feature engineer state"""
+        import pickle
+        
+        with open(filepath, 'rb') as f:
+            state = pickle.load(f)
+        
+        self.feature_stats = state['feature_stats']
+        self.label_encoders = state['label_encoders']
+        self.feature_names = state['feature_names']
+        
+        print(f"Loaded FeatureEngineer from {filepath}")
